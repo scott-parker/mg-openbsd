@@ -669,10 +669,9 @@ writeout(FILE ** ffp, struct buffer *bp, char *fn)
 {
 	struct stat	statbuf;
 	int	 s;
-	char    *dp;
+	char     dp[NFILEN];
 
-	dp = dirname(fn);
-
+	xdirname(dp, fn, sizeof(dp));
 	if (stat(fn, &statbuf) == -1 && errno == ENOENT) {
 		errno = 0;
 		if (access(dp, W_OK) && errno == EACCES) {

@@ -13,7 +13,6 @@
 #include	"sysdef.h"	/* Order is critical.		 */
 #include	"ttydef.h"
 #include	"chrdef.h"
-
 #include	"linux.h"
 
 typedef int	(*PF)(int, int);	/* generally useful type */
