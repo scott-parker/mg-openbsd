@@ -1,38 +1,34 @@
-PREFIX?= /usr/local
-BINDIR?= $(PREFIX)/bin
-MANDIR?= $(PREFIX)/man
-DOCDIR?= $(PREFIX)/share/doc
+# $OpenBSD: Makefile,v 1.28 2013/05/31 18:03:43 lum Exp $
 
-CC?= gcc
-CFLAGS+= -O2 -Wall -D_GNU_SOURCE -DFKEYS -DREGEX -DXKEYS
-LDADD+= -lcurses
+PROG=	mg
 
-SRCS= $(shell ls *.c)
-OBJS= $(SRCS:.c=.o)
+LDADD+=	-lcurses -lutil
+DPADD+=	${LIBCURSES} ${LIBUTIL}
 
-all: mg
+# (Common) compile-time options:
+#
+#	FKEYS		-- add support for function key sequences.
+#	REGEX		-- create regular expression functions.
+#	STARTUP		-- look for and handle initialization file.
+#	XKEYS		-- use termcap function key definitions.
+#				note: XKEYS and bsmap mode do _not_ get along.
+#
+CFLAGS+=-Wall -DFKEYS -DREGEX -DXKEYS
 
-mg: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $+ $(LDADD)
+SRCS=	autoexec.c basic.c bell.c buffer.c cinfo.c dir.c display.c \
+	echo.c extend.c file.c fileio.c funmap.c help.c kbd.c keymap.c \
+	line.c macro.c main.c match.c modes.c paragraph.c random.c \
+	re_search.c region.c search.c spawn.c tty.c ttyio.c ttykbd.c \
+	undo.c version.c window.c word.c yank.c
 
-%.o: %.c
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
+#
+# More or less standalone extensions.
+#
+SRCS+=	cmode.c cscope.c dired.c grep.c tags.c theo.c
 
-install: all
-	install -m 755 -d $(DESTDIR)$(BINDIR)
-	install -m 755 -d $(DESTDIR)$(MANDIR)/man1
-	install -m 755 -d $(DESTDIR)$(DOCDIR)/mg
-	install -m 755 mg $(DESTDIR)$(BINDIR)
-	install -m 644 mg.1 $(DESTDIR)$(MANDIR)/man1
-	install -m 644 tutorial $(DESTDIR)$(DOCDIR)/mg
-	install -m 644 README $(DESTDIR)$(DOCDIR)/mg
+afterinstall:
+	${INSTALL} -d ${DESTDIR}${DOCDIR}/mg
+	${INSTALL} -m ${DOCMODE} -c ${.CURDIR}/tutorial \
+		${DESTDIR}${DOCDIR}/mg
 
-uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/mg
-	rm -f $(DESTDIR)$(MANDIR)/man1/mg.1
-	rm -rf $(DESTDIR)$(DOCDIR)/mg
-
-clean:
-	rm -f mg $(OBJS)
-
-.PHONY: all install clean
+.include <bsd.prog.mk>

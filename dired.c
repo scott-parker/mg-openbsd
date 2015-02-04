@@ -1,4 +1,4 @@
-/*	$OpenBSD: dired.c,v 1.63 2013/06/03 05:10:59 lum Exp $	*/
+/*	$OpenBSD: dired.c,v 1.67 2014/04/03 20:17:12 lum Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -305,10 +305,10 @@ d_undelbak(int f, int n)
 	if (n < 0)
 		return (d_undel(f, -n));
 	while (n--) {
-		if (llength(curwp->w_dotp) > 0)
-			lputc(curwp->w_dotp, 0, ' ');
 		if (lback(curwp->w_dotp) != curbp->b_headp)
 			curwp->w_dotp = lback(curwp->w_dotp);
+		if (llength(curwp->w_dotp) > 0)
+			lputc(curwp->w_dotp, 0, ' ');
 	}
 	curwp->w_rflag |= WFEDIT | WFMOVE;
 	return (d_warpdot(curwp->w_dotp, &curwp->w_doto));
@@ -372,11 +372,13 @@ d_expunge(int f, int n)
 		if (llength(lp) && lgetc(lp, 0) == 'D') {
 			switch (d_makename(lp, fname, sizeof(fname))) {
 			case ABORT:
+				dobeep();
 				ewprintf("Bad line in dired buffer");
 				return (FALSE);
 			case FALSE:
 				if (unlink(fname) < 0) {
 					(void)xbasename(sname, fname, NFILEN);
+					dobeep();
 					ewprintf("Could not delete '%s'", sname);
 					return (FALSE);
 				}
@@ -384,6 +386,7 @@ d_expunge(int f, int n)
 			case TRUE:
 				if (rmdir(fname) < 0) {
 					(void)xbasename(sname, fname, NFILEN);
+					dobeep();
 					ewprintf("Could not delete directory "
 					    "'%s'", sname);
 					return (FALSE);
@@ -409,11 +412,13 @@ d_copy(int f, int n)
 	struct buffer	*bp;
 
 	if (d_makename(curwp->w_dotp, frname, sizeof(frname)) != FALSE) {
+		dobeep();
 		ewprintf("Not a file");
 		return (FALSE);
 	}
 	off = strlcpy(toname, curbp->b_fname, sizeof(toname));
 	if (off >= sizeof(toname) - 1) {	/* can't happen, really */
+		dobeep();
 		ewprintf("Directory name too long");
 		return (FALSE);
 	}
@@ -446,11 +451,13 @@ d_rename(int f, int n)
 	char		 sname[NFILEN];
 
 	if (d_makename(curwp->w_dotp, frname, sizeof(frname)) != FALSE) {
+		dobeep();
 		ewprintf("Not a file");
 		return (FALSE);
 	}
 	off = strlcpy(toname, curbp->b_fname, sizeof(toname));
 	if (off >= sizeof(toname) - 1) {	/* can't happen, really */
+		dobeep();
 		ewprintf("Directory name too long");
 		return (FALSE);
 	}
@@ -499,6 +506,7 @@ d_shell_command(int f, int n)
 		return (ABORT);
 
 	if (d_makename(curwp->w_dotp, fname, sizeof(fname)) != FALSE) {
+		dobeep();
 		ewprintf("bad line");
 		return (ABORT);
 	}
@@ -548,6 +556,7 @@ d_exec(int space, struct buffer *bp, const char *input, const char *cmd, ...)
 
 	/* Allocate and build the argv. */
 	if ((argv = calloc(n, sizeof(*argv))) == NULL) {
+		dobeep();
 		ewprintf("Can't allocate argv : %s", strerror(errno));
 		goto out;
 	}
@@ -563,11 +572,13 @@ d_exec(int space, struct buffer *bp, const char *input, const char *cmd, ...)
 		input = "/dev/null";
 
 	if ((infd = open(input, O_RDONLY)) == -1) {
+		dobeep();
 		ewprintf("Can't open input file : %s", strerror(errno));
 		goto out;
 	}
 
 	if (pipe(fds) == -1) {
+		dobeep();
 		ewprintf("Can't create pipe : %s", strerror(errno));
 		goto out;
 	}
@@ -578,6 +589,7 @@ d_exec(int space, struct buffer *bp, const char *input, const char *cmd, ...)
 		goto out;
 
 	if ((pid = fork()) == -1) {
+		dobeep();
 		ewprintf("Can't fork");
 		goto out;
 	}
@@ -636,7 +648,7 @@ d_create_directory(int f, int n)
 	int ret;
 	struct buffer	*bp;
 
-	ret = do_makedir();
+	ret = ask_makedir();
 	if (ret != TRUE)
 		return(ret);
 
@@ -671,6 +683,7 @@ refreshbuffer(struct buffer *bp)
 
 	tmp = strdup(bp->b_fname);
 	if (tmp == NULL) {
+		dobeep();
 		ewprintf("Out of memory");
 		return (NULL);
 	}
@@ -774,6 +787,7 @@ dired_(char *dname)
 	size_t		 len;
 
 	if ((dname = adjustname(dname, FALSE)) == NULL) {
+		dobeep();
 		ewprintf("Bad directory name");
 		return (NULL);
 	}
@@ -784,17 +798,20 @@ dired_(char *dname)
 		dname[len] = '\0';
 	}
 	if ((access(dname, R_OK | X_OK)) == -1) {
-		if (errno == EACCES)
+		if (errno == EACCES) {
+			dobeep();
 			ewprintf("Permission denied");
+		}
 		return (NULL);
 	}
 	if ((bp = findbuffer(dname)) == NULL) {
+		dobeep();
 		ewprintf("Could not create buffer");
 		return (NULL);
 	}
 	if (bclear(bp) != TRUE)
 		return (NULL);
-	bp->b_flag |= BFREADONLY;
+	bp->b_flag |= BFREADONLY | BFIGNDIRTY;
 
 	if ((d_exec(2, bp, NULL, "ls", "-al", dname, NULL)) != TRUE)
 		return (NULL);
@@ -818,6 +835,7 @@ dired_(char *dname)
 	(void)strlcpy(bp->b_cwd, dname, sizeof(bp->b_cwd));
 	if ((bp->b_modes[1] = name_mode("dired")) == NULL) {
 		bp->b_modes[0] = name_mode("fundamental");
+		dobeep();
 		ewprintf("Could not find mode dired");
 		return (NULL);
 	}

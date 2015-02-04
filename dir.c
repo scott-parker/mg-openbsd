@@ -1,4 +1,4 @@
-/*	$OpenBSD: dir.c,v 1.23 2013/05/30 04:17:25 lum Exp $	*/
+/*	$OpenBSD: dir.c,v 1.27 2014/04/03 20:17:12 lum Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -47,6 +47,7 @@ changedir(int f, int n)
 		return (FALSE);
 	/* Append trailing slash */
 	if (chdir(bufc) == -1) {
+		dobeep();
 		ewprintf("Can't change dir to %s", bufc);
 		return (FALSE);
 	}
@@ -83,18 +84,15 @@ getcwdir(char *buf, size_t len)
 int
 makedir(int f, int n)
 {
-	return (do_makedir());
+	return (ask_makedir());
 }
 
 int
-do_makedir(void)
+ask_makedir(void)
 {
 
-	struct stat	 sb;
-	int		 finished, ishere;
-	mode_t		 dir_mode, mode, oumask;
 	char		 bufc[NFILEN];
-	char		*slash,	*path;
+	char		*path;
 
 	if (getbufcwd(bufc, sizeof(bufc)) != TRUE)
 		return (ABORT);
@@ -104,8 +102,24 @@ do_makedir(void)
 	else if (path[0] == '\0')
 		return (FALSE);
 
+	return (do_makedir(path));
+}
+
+int
+do_makedir(char *path)
+{
+	struct stat	 sb;
+	int		 finished, ishere;
+	mode_t		 dir_mode, mode, oumask;
+	char		*slash;
+
 	if ((path = adjustname(path, TRUE)) == NULL)
 		return (FALSE);
+
+	/* Remove trailing slashes */
+	slash = strrchr(path, '\0');
+	while (--slash > path && *slash == '/')
+		*slash = '\0';
 
 	slash = path;
 
@@ -122,6 +136,7 @@ do_makedir(void)
 
 		ishere = !stat(path, &sb);
 		if (finished && ishere) {
+			dobeep();
 			ewprintf("Cannot create directory %s: file exists",
 			     path);
 			return(FALSE);
@@ -137,10 +152,11 @@ do_makedir(void)
 			}
 		} else {
 			if (!ishere || !S_ISDIR(sb.st_mode)) {
-				if (!ishere)
+				if (!ishere) {
+					dobeep();
 					ewprintf("Creating directory: "
 					    "permission denied, %s", path);
-				else
+				} else
 					eerase();
 
 				umask(oumask);

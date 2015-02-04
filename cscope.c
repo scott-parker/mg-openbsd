@@ -1,4 +1,4 @@
-/*	$OpenBSD: cscope.c,v 1.3 2012/07/02 08:08:31 lum Exp $	*/
+/*	$OpenBSD: cscope.c,v 1.6 2014/04/10 14:03:57 jsg Exp $	*/
 
 /*
  * This file is in the public domain.
@@ -178,14 +178,17 @@ cscreatelist(int f, int n)
 		return (FALSE);
 		
 	if (stat(dir, &sb) == -1) {
+		dobeep();
 		ewprintf("stat: %s", strerror(errno));
 		return (FALSE);
 	} else if (S_ISDIR(sb.st_mode) == 0) {
+		dobeep();
 		ewprintf("%s: Not a directory", dir);
 		return (FALSE);
 	}
 	
 	if (csexists("cscope-indexer") == FALSE) {
+		dobeep();
 		ewprintf("no such file or directory, cscope-indexer");
 		return (FALSE);
 	}
@@ -195,19 +198,24 @@ cscreatelist(int f, int n)
 		return (FALSE);
 
 	if ((fpipe = popen(cmd, "r")) == NULL) {
+		dobeep();
 		ewprintf("problem opening pipe");
 		return (FALSE);
 	}
 	
 	bp = bfind("*cscope*", TRUE);
-	if (bclear(bp) != TRUE)
+	if (bclear(bp) != TRUE) {
+		pclose(fpipe);
 		return (FALSE);
+	}
 	bp->b_flag |= BFREADONLY;
 
 	clen = snprintf(title, sizeof(title), "%s%s",
 	    "Creating cscope file list 'cscope.files' in: ", dir);
-	if (clen < 0 || clen >= sizeof(title))
+	if (clen < 0 || clen >= sizeof(title)) {
+		pclose(fpipe);
 		return (FALSE);
+	}
 	addline(bp, title);
 	addline(bp, "");
 	/* All lines are NUL terminated */
@@ -231,6 +239,7 @@ csnextmatch(int f, int n)
 	
 	if (curmatch == NULL) {
 		if ((r = TAILQ_FIRST(&csrecords)) == NULL) {
+			dobeep();
 			ewprintf("The *cscope* buffer does not exist yet");
 			return (FALSE);
 		}
@@ -241,6 +250,7 @@ csnextmatch(int f, int n)
 		if (m == NULL) {
 			r = TAILQ_NEXT(currecord, entry);
 			if (r == NULL) {
+				dobeep();
 				ewprintf("The end of *cscope* buffer has been"
 				    " reached");
 				return (FALSE);
@@ -273,6 +283,7 @@ csprevmatch(int f, int n)
 		else {
 			r = TAILQ_PREV(currecord, csrecords, entry);
 			if (r == NULL) {
+				dobeep();
 				ewprintf("The beginning of *cscope* buffer has"
 				    " been reached");
 				return (FALSE);
@@ -296,12 +307,14 @@ csnextfile(int f, int n)
 	
 	if (curmatch == NULL) {
 		if ((r = TAILQ_FIRST(&csrecords)) == NULL) {
+			dobeep();
 			ewprintf("The *cscope* buffer does not exist yet");
 			return (FALSE);
 		}
 
 	} else {
 		if ((r = TAILQ_NEXT(currecord, entry)) == NULL) {
+			dobeep();
 			ewprintf("The end of *cscope* buffer has been reached");
 			return (FALSE);
 		}
@@ -321,12 +334,14 @@ csprevfile(int f, int n)
 	
 	if (curmatch == NULL) {
 		if ((r = TAILQ_FIRST(&csrecords)) == NULL) {
+			dobeep();
 			ewprintf("The *cscope* buffer does not exist yet");
 			return (FALSE);
 		}
 
 	} else {
 		if ((r = TAILQ_PREV(currecord, csrecords, entry)) == NULL) {
+			dobeep();
 			ewprintf("The beginning of *cscope* buffer has been"
 			    " reached");
 			return (FALSE);
@@ -384,6 +399,7 @@ do_cscope(int i)
 
 	/* If current buffer isn't a source file just return */
 	if (fnmatch("*.[chy]", curbp->b_fname, 0) != 0) {
+		dobeep();
 		ewprintf("C-c s not defined");
 		return (FALSE);
 	}
@@ -397,6 +413,7 @@ do_cscope(int i)
 		return (FALSE);
 
 	if (csexists("cscope") == FALSE) {
+		dobeep();
 		ewprintf("no such file or directory, cscope");
 		return (FALSE);
 	}
@@ -408,18 +425,23 @@ do_cscope(int i)
 		return (FALSE);
 
 	if ((fpipe = popen(cmd, "r")) == NULL) {
+		dobeep();
 		ewprintf("problem opening pipe");
 		return (FALSE);
 	}
 	
 	bp = bfind("*cscope*", TRUE);
-	if (bclear(bp) != TRUE)
+	if (bclear(bp) != TRUE) {
+		pclose(fpipe);
 		return (FALSE);
+	}
 	bp->b_flag |= BFREADONLY;
 
 	clen = snprintf(title, sizeof(title), "%s%s", csprompt[i], pattern);
-	if (clen < 0 || clen >= sizeof(title))
+	if (clen < 0 || clen >= sizeof(title)) {
+		pclose(fpipe);
 		return (FALSE);
+	}
 	addline(bp, title);
 	addline(bp, "");
 	addline(bp, "-------------------------------------------------------------------------------");
@@ -581,6 +603,7 @@ csexists(const char *cmd)
        if ((tmp = getenv("PATH")) == NULL)
                return (FALSE);
        if ((pathc = path = strndup(tmp, NFILEN)) == NULL) {
+               dobeep();
                ewprintf("out of memory");
                return (FALSE);
        }
@@ -594,6 +617,7 @@ csexists(const char *cmd)
                        dir[--dlen] = '\0';     /* strip trailing '/' */
 
                if (dlen + 1 + cmdlen >= sizeof(fname))  {
+                       dobeep();
                        ewprintf("path too long");
                        goto cleanup;
                }

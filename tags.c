@@ -1,4 +1,4 @@
-/*	$OpenBSD: tags.c,v 1.6 2012/10/20 09:05:33 jasper Exp $	*/
+/*	$OpenBSD: tags.c,v 1.9 2014/03/22 10:00:58 lum Exp $	*/
 
 /*
  * This file is in the public domain.
@@ -8,15 +8,17 @@
 
 #include <sys/queue.h>
 #include <sys/stat.h>
+#include <sys/tree.h>
 #include <sys/types.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <util.h>
 
 #include "def.h"
-#include "tree.h"
 
 struct ctag;
 
@@ -77,6 +79,7 @@ tagsvisit(int f, int n)
 		fname[0] = '\0';
 	
 	if (strlcat(fname, DEFAULTFN, sizeof(fname)) >= sizeof(fname)) {
+		dobeep();
 		ewprintf("Filename too long");
 		return (FALSE);
 	}
@@ -85,12 +88,15 @@ tagsvisit(int f, int n)
 	    NFILEN, EFFILE | EFCR | EFNEW | EFDEF, DEFAULTFN);
 
 	if (stat(bufp, &sb) == -1) {
+		dobeep();
 		ewprintf("stat: %s", strerror(errno));
 		return (FALSE);
 	} else if (S_ISREG(sb.st_mode) == 0) {
+		dobeep();
 		ewprintf("Not a regular file");
 		return (FALSE);
 	} else if (access(bufp, R_OK) == -1) {
+		dobeep();
 		ewprintf("Cannot access file %s", bufp);
 		return (FALSE);
 	}
@@ -100,18 +106,21 @@ tagsvisit(int f, int n)
 			return (ABORT);
 		else if (bufp[0] == '\0') {
 			if ((tagsfn = strdup(fname)) == NULL) {
+				dobeep();
 				ewprintf("Out of memory");
 				return (FALSE);
 			}
 		} else {
 			/* bufp points to local variable, so duplicate. */
 			if ((tagsfn = strdup(bufp)) == NULL) {
+				dobeep();
 				ewprintf("Out of memory");
 				return (FALSE);
 			}
 		}
 	} else {
 		if ((temp = strdup(bufp)) == NULL) {
+			dobeep();
 			ewprintf("Out of memory");
 			return (FALSE);
 		}
@@ -137,11 +146,12 @@ findtag(int f, int n)
 	char *tok, *bufp;
 	int  ret;
 
-	if (curtoken(f, n, dtok) == FALSE)
-		return (FALSE);
-	
-	bufp = eread("Find tag (default %s) ", utok, MAX_TOKEN,
-	    EFNUL | EFNEW, dtok);
+	if (curtoken(f, n, dtok) == FALSE) {
+		dtok[0] = '\0';
+		bufp = eread("Find tag:", utok, MAX_TOKEN, EFNUL | EFNEW);
+	} else
+		bufp = eread("Find tag (default %s):", utok, MAX_TOKEN,
+		    EFNUL | EFNEW, dtok);
 
 	if (bufp == NULL)
 		return (ABORT);
@@ -151,6 +161,7 @@ findtag(int f, int n)
 		tok = utok;
 	
 	if (tok[0] == '\0') {
+		dobeep();
 		ewprintf("There is no default tag");
 		return (FALSE);
 	}
@@ -209,12 +220,14 @@ pushtag(char *tok)
 	 * same as buffer's directory.
 	 */
 	if (strlcpy(bname, curbp->b_cwd, sizeof(bname)) >= sizeof(bname)) {
-		    ewprintf("filename too long");
-		    return (FALSE);
+		dobeep();
+		ewprintf("filename too long");
+		return (FALSE);
 	}
 	if (strlcat(bname, curbp->b_bname, sizeof(bname)) >= sizeof(bname)) {
-		    ewprintf("filename too long");
-		    return (FALSE);
+		dobeep();
+		ewprintf("filename too long");
+		return (FALSE);
 	}	
 
 	if (loadbuffer(res->fname) == FALSE)
@@ -222,10 +235,12 @@ pushtag(char *tok)
 	
 	if (searchpat(res->pat) == TRUE) {
 		if ((s = malloc(sizeof(struct tagpos))) == NULL) {
+			dobeep();
 			ewprintf("Out of memory");
 			return (FALSE);
 		}
 		if ((s->bname = strdup(bname)) == NULL) {
+			dobeep();
 			ewprintf("Out of memory");
 			free(s);
 			return (FALSE);
@@ -235,6 +250,7 @@ pushtag(char *tok)
 		SLIST_INSERT_HEAD(&shead, s, entry);
 		return (TRUE);
 	} else {
+		dobeep();
 		ewprintf("%s: pattern not found", res->tag);
 		return (FALSE);
 	}
@@ -253,6 +269,7 @@ poptag(int f, int n)
 	struct tagpos *s;
 	
 	if (SLIST_EMPTY(&shead)) {
+		dobeep();
 		ewprintf("No previous location for find-tag invocation");
 		return (FALSE);
 	}
@@ -288,6 +305,7 @@ loadtags(const char *fn)
 	FILE *fd;
 	
 	if ((fd = fopen(fn, "r")) == NULL) {
+		dobeep();
 		ewprintf("Unable to open tags file: %s", fn);
 		return (FALSE);
 	}
@@ -355,6 +373,7 @@ addctag(char *l)
 	struct ctag *t;
 	
 	if ((t = malloc(sizeof(struct ctag))) == NULL) {
+		dobeep();
 		ewprintf("Out of memory");
 		return (FALSE);
 	}
@@ -487,6 +506,7 @@ searchtag(char *tok)
 
 	t.tag = tok;
 	if ((res = RB_FIND(tagtree, &tags, &t)) == NULL) {
+		dobeep();
 		ewprintf("No tag containing %s", tok);
 		return (NULL);
 	}

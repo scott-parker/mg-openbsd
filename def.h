@@ -1,4 +1,4 @@
-/*	$OpenBSD: def.h,v 1.138 2013/05/31 18:03:43 lum Exp $	*/
+/*	$OpenBSD: def.h,v 1.141 2014/04/03 20:17:12 lum Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -13,7 +13,6 @@
 #include	"sysdef.h"	/* Order is critical.		 */
 #include	"ttydef.h"
 #include	"chrdef.h"
-#include	"linux.h"
 
 typedef int	(*PF)(int, int);	/* generally useful type */
 
@@ -337,7 +336,8 @@ int		 changedir(int, int);
 int		 showcwdir(int, int);
 int		 getcwdir(char *, size_t);
 int		 makedir(int, int);
-int		 do_makedir(void);
+int		 do_makedir(char *);
+int		 ask_makedir(void);
 
 /* dired.c */
 struct buffer	*dired_(char *);
@@ -348,7 +348,6 @@ int		 filevisit(int, int);
 int		 filevisitalt(int, int);
 int		 filevisitro(int, int);
 int		 poptofile(int, int);
-struct buffer	*findbuffer(char *);
 int		 readin(char *);
 int		 insertfile(char *, char *, int);
 int		 filewrite(int, int);
@@ -420,6 +419,7 @@ int		 checkdirty(struct buffer *);
 int		 revertbuffer(int, int);
 int		 dorevert(void);
 int		 diffbuffer(int, int);
+struct buffer	*findbuffer(char *);
 
 /* display.c */
 int		vtresize(int, int, int);
@@ -713,7 +713,6 @@ extern int		 defb_nmodes;
 extern int		 defb_flag;
 extern int		 doaudiblebell;
 extern int		 dovisiblebell;
-extern int		 donebell;
 extern char	 	 cinfo[];
 extern char		*keystrings[];
 extern char		 pat[NPAT];
