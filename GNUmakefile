@@ -9,7 +9,7 @@ UNAME:=		$(shell sh -c 'uname 2> /dev/null || echo undefined')
 
 CFLAGS+=	-Iinclude -DFKEYS -DREGEX -DXKEYS
 
-LDADD+=		-lcurses -lcrypto -lrt
+LDADD+=		-lcurses
 
 SRCS=		autoexec.c basic.c bell.c buffer.c cinfo.c cmode.c cscope.c \
 		dir.c dired.c display.c echo.c extend.c file.c fileio.c \
@@ -20,10 +20,13 @@ SRCS=		autoexec.c basic.c bell.c buffer.c cinfo.c cmode.c cscope.c \
 
 ifeq ($(UNAME), Linux)
 CFLAGS+=	-D_GNU_SOURCE
+LDADD+=		-lcrypto -lrt
 SRCS+=		compat/arc4random.c compat/arc4random_uniform.c \
 		compat/explicit_bzero.c compat/fgetln.c compat/fparseln.c \
 		compat/getentropy_linux.c compat/strlcat.c compat/strlcpy.c \
 		compat/strtonum.c
+else ifeq ($(UNAME), Darwin)
+SRCS+=		compat/fparseln.c compat/strtonum.c
 endif
 
 OBJS=		$(SRCS:.c=.o)
