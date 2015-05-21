@@ -1,4 +1,4 @@
-/*	$OpenBSD: cscope.c,v 1.6 2014/04/10 14:03:57 jsg Exp $	*/
+/*	$OpenBSD: cscope.c,v 1.8 2014/11/16 04:16:41 guenther Exp $	*/
 
 /*
  * This file is in the public domain.
@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <fnmatch.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -557,7 +558,7 @@ prettyprint(struct buffer *bp, struct cstokens *t)
 const char *
 ltrim(const char *s)
 {
-	while (isblank(*s))
+	while (isblank((unsigned char)*s))
 		s++;
 	return s;
 }

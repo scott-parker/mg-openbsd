@@ -1,4 +1,4 @@
-/*	$OpenBSD: extend.c,v 1.55 2014/04/02 20:32:00 lum Exp $	*/
+/*	$OpenBSD: extend.c,v 1.58 2014/12/06 23:20:17 krw Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -12,6 +12,7 @@
 
 #include <sys/types.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include "macro.h"
 
@@ -21,8 +22,6 @@
 #define	BINDKEY			/* bindkey is used by FKEYS startup code */
 #endif /* !BINDKEY */
 #endif /* FKEYS */
-
-#include <ctype.h>
 
 static int	 remap(KEYMAP *, int, PF, KEYMAP *);
 static KEYMAP	*reallocmap(KEYMAP *);
@@ -446,7 +445,7 @@ dobindkey(KEYMAP *map, const char *func, const char *str)
 	for (i = 0; *str && i < MAXKEY; i++) {
 		/* XXX - convert numbers w/ strol()? */
 		if (*str == '^' && *(str + 1) !=  '\0') {
-			key.k_chars[i] = CCHR(toupper(*++str));
+			key.k_chars[i] = CCHR(toupper((unsigned char)*++str));
 		} else if (*str == '\\' && *(str + 1) != '\0') {
 			switch (*++str) {
 			case '^':

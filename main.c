@@ -1,4 +1,4 @@
-/*	$OpenBSD: main.c,v 1.72 2014/03/22 11:05:37 lum Exp $	*/
+/*	$OpenBSD: main.c,v 1.74 2014/11/16 04:16:41 guenther Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -12,6 +12,7 @@
 #include "macro.h"
 
 #include <err.h>
+#include <limits.h>
 #include <locale.h>
 
 int		 thisflag;			/* flags, this command	*/
@@ -235,7 +236,7 @@ quit(int f, int n)
 	    || eyesno("Modified buffers exist; really exit") == TRUE) {
 		vttidy();
 		closetags();
-		exit(GOOD);
+		exit(0);
 	}
 	return (TRUE);
 }

@@ -1,11 +1,11 @@
-/*	$OpenBSD: sysdef.h,v 1.16 2008/09/15 16:11:35 kjell Exp $	*/
+/*	$OpenBSD: sysdef.h,v 1.19 2014/11/16 04:16:41 guenther Exp $	*/
 
 /* This file is in the public domain. */
 
 /*
  *		POSIX system header file
  */
-#include <sys/param.h>
+#include <sys/types.h>
 #include <sys/queue.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -13,14 +13,12 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>		/* for struct timespec */
 
 #define	KBLOCK		8192	/* Kill grow.			 */
-#define	GOOD		0	/* Good exit status.		 */
 
 typedef int	RSIZE;		/* Type for file/region sizes	 */
 typedef short	KCHAR;		/* Type for internal keystrokes	 */
-
-#define MALLOCROUND(m)	(m+=7,m&=~7)	/* round up to 8 byte boundary	 */
 
 struct fileinfo {
 	uid_t		fi_uid;

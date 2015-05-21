@@ -19,14 +19,13 @@ SRCS=		autoexec.c basic.c bell.c buffer.c cinfo.c cmode.c cscope.c \
 		version.c window.c word.c yank.c
 
 ifeq ($(UNAME), Linux)
-CFLAGS+=	-D_GNU_SOURCE
-LDADD+=		-lcrypto -lrt
+LDADD+=		-lcrypto
 SRCS+=		compat/arc4random.c compat/arc4random_uniform.c \
 		compat/explicit_bzero.c compat/fgetln.c compat/fparseln.c \
-		compat/getentropy_linux.c compat/strlcat.c compat/strlcpy.c \
-		compat/strtonum.c
+		compat/getentropy_linux.c compat/reallocarray.c \
+		compat/strlcat.c compat/strlcpy.c compat/strtonum.c
 else ifeq ($(UNAME), Darwin)
-SRCS+=		compat/fparseln.c compat/strtonum.c
+SRCS+=		compat/fparseln.c compat/reallocarray.c compat/strtonum.c
 endif
 
 OBJS=		$(SRCS:.c=.o)

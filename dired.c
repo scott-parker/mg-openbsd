@@ -1,4 +1,4 @@
-/*	$OpenBSD: dired.c,v 1.67 2014/04/03 20:17:12 lum Exp $	*/
+/*	$OpenBSD: dired.c,v 1.69 2014/12/30 22:05:32 bcallah Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 
 #include <ctype.h>
+#include <limits.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <err.h>
@@ -212,7 +213,7 @@ dired(int f, int n)
 	char		 dname[NFILEN], *bufp, *slash;
 	struct buffer	*bp;
 
-	if (curbp->b_fname && curbp->b_fname[0] != '\0') {
+	if (curbp->b_fname[0] != '\0') {
 		(void)strlcpy(dname, curbp->b_fname, sizeof(dname));
 		if ((slash = strrchr(dname, '/')) != NULL) {
 			*(slash + 1) = '\0';
@@ -242,7 +243,7 @@ d_otherwindow(int f, int n)
 	struct buffer	*bp;
 	struct mgwin	*wp;
 
-	if (curbp->b_fname && curbp->b_fname[0] != '\0') {
+	if (curbp->b_fname[0] != '\0') {
 		(void)strlcpy(dname, curbp->b_fname, sizeof(dname));
 		if ((slash = strrchr(dname, '/')) != NULL) {
 			*(slash + 1) = '\0';
@@ -496,7 +497,7 @@ reaper(int signo __attribute__((unused)))
 int
 d_shell_command(int f, int n)
 {
-	char		 command[512], fname[MAXPATHLEN], *bufp;
+	char		 command[512], fname[PATH_MAX], *bufp;
 	struct buffer	*bp;
 	struct mgwin	*wp;
 	char		 sname[NFILEN];

@@ -1,4 +1,4 @@
-/*	$OpenBSD: paragraph.c,v 1.31 2014/03/27 09:30:55 florian Exp $	*/
+/*	$OpenBSD: paragraph.c,v 1.35 2014/11/16 04:16:41 guenther Exp $	*/
 
 /* This file is in the public domain. */
 
@@ -8,6 +8,7 @@
  */
 
 #include <ctype.h>
+#include <limits.h>
 
 #include "def.h"
 
@@ -35,8 +36,6 @@ gotobop(int f, int n)
 	while (n-- > 0) {
 		nospace = 0;
 		while (lback(curwp->w_dotp) != curbp->b_headp) {
-			curwp->w_dotp = lback(curwp->w_dotp);
-			curwp->w_dotline--;
 			curwp->w_doto = 0;
 			col = 0;
 
@@ -49,6 +48,9 @@ gotobop(int f, int n)
 					break;
 			} else
 				nospace = 1;
+
+			curwp->w_dotline--;
+			curwp->w_dotp = lback(curwp->w_dotp);
 		}
 	}
 	/* force screen update */
@@ -89,8 +91,16 @@ gotoeop(int f, int n)
 
 			curwp->w_dotp = lforw(curwp->w_dotp);
 			curwp->w_dotline++;
+
+			/* do not continue after end of buffer */
+			if (lforw(curwp->w_dotp) == curbp->b_headp) {
+				gotoeol(FFRAND, 1);
+				curwp->w_rflag |= WFMOVE;
+				return (FALSE);
+			}
 		}
 	}
+
 	/* force screen update */
 	curwp->w_rflag |= WFMOVE;
 	return (TRUE);
@@ -237,13 +247,14 @@ cleanup:
 int
 killpara(int f, int n)
 {
-	int	status;		/* returned status of functions */
+	int	status, end = FALSE;	/* returned status of functions */
 
 	/* for each paragraph to delete */
 	while (n--) {
 
 		/* mark out the end and beginning of the para to delete */
-		(void)gotoeop(FFRAND, 1);
+		if (!gotoeop(FFRAND, 1))
+			end = TRUE;
 
 		/* set the mark here */
 		curwp->w_markp = curwp->w_dotp;
@@ -258,6 +269,9 @@ killpara(int f, int n)
 		/* and delete it */
 		if ((status = killregion(FFRAND, 1)) != TRUE)
 			return (status);
+
+		if (end)
+			return (TRUE);
 	}
 	return (TRUE);
 }

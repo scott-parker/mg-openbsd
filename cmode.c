@@ -1,4 +1,4 @@
-/* $OpenBSD: cmode.c,v 1.9 2014/03/31 14:26:03 bcallah Exp $ */
+/* $OpenBSD: cmode.c,v 1.12 2015/01/13 17:02:28 bcallah Exp $ */
 /*
  * This file is in the public domain.
  *
@@ -157,8 +157,8 @@ cc_tab(int f, int n)
 int
 cc_indent(int f, int n)
 {
-	int pi, mi;			/* Previous indents */
-	int ci, dci;			/* current indent, don't care */
+	int pi, mi;			/* Previous indents (mi is ignored) */
+	int ci;				/* current indent */
 	struct line *lp;
 	int ret;
 	
@@ -181,7 +181,7 @@ cc_indent(int f, int n)
 	/* Strip leading space on current line */
 	delleadwhite(FFRAND, 1);
 	/* current indent is computed only to current position */
-	dci = getindent(curwp->w_dotp, &ci);
+	(void)getindent(curwp->w_dotp, &ci);
 	
 	if (pi + ci < 0)
 		ret = indent(FFOTHARG, 0);
@@ -217,7 +217,6 @@ getindent(const struct line *lp, int *curi)
 {
 	int lo, co;		/* leading space,  current offset*/
 	int nicol = 0;		/* position count */
-	int ccol = 0;		/* current column */
 	int c = '\0';		/* current char */
 	int newind = 0;		/* new index value */
 	int stringp = FALSE;	/* in string? */
@@ -226,7 +225,6 @@ getindent(const struct line *lp, int *curi)
 	int nparen = 0;		/* paren count */
 	int obrace = 0;		/* open brace count */
 	int cbrace = 0;		/* close brace count */
-	int contp = FALSE;	/* Continue? */
 	int firstnwsp = FALSE;	/* First nonspace encountered? */
 	int colonp = FALSE;	/* Did we see a colon? */
 	int questionp = FALSE;	/* Did we see a question mark? */
@@ -256,13 +254,11 @@ getindent(const struct line *lp, int *curi)
 		nicol = 0;
 
 	newind = 0;
-	ccol = nicol;			/* current column */
 	/* Compute modifiers */
 	for (co = lo; co < llength(lp); co++) {
 		c = lgetc(lp, co);
 		/* We have a non-whitespace char */
 		if (!firstnwsp && !isspace(c)) {
-			contp = TRUE;
 			if (c == '#')
 				cppp = TRUE;
 			firstnwsp = TRUE; 
@@ -285,7 +281,6 @@ getindent(const struct line *lp, int *curi)
 		} else if (c == '{') {
 			obrace++;
 			firstnwsp = FALSE;
-			contp = FALSE;
 		} else if (c == '}') {
 			cbrace++;
 		} else if (c == '?') {
@@ -294,9 +289,6 @@ getindent(const struct line *lp, int *curi)
 			/* ignore (foo ? bar : baz) construct */
 			if (!questionp)
 				colonp = TRUE;
-		} else if (c == ';') {
-			if (nparen > 0)
-				contp = FALSE;
 		} else if (c == '/') {
 			/* first nonwhitespace? -> indent */
 			if (firstnwsp) {
